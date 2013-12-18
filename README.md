@@ -35,13 +35,15 @@ endpoint and _actual_ DynDNS.
 
 # Running
 ```
-./upnp_tunnel_updater
+./upnp_tunnel_updater \
+  -user-id=<USERID> \
+  -password=<PASSWORD> \
+  -tunnel-id=<TUNNEL_ID>
 ```
 
-Since it is a work in progress, currently it only prints out the WAN IP Address
-and some informational messages about runtime. Actual tunnel updating to come.
-
 # TODO
-* Updating the tunnel endpoint configuration
+* Flag presence checks.
+* Local cache file to prevent spurious update attempts of remote config.
 * Subscribing to the event endpoint and remaining resident for continuous
 updates.
+* Code cleanup.

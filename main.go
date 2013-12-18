@@ -2,13 +2,22 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"log"
 	"net"
 	"strings"
 )
 
+var (
+	userID   = flag.String("user-id", "", "Tunnelbroker User ID")
+	password = flag.String("password", "", "Tunnelbroker password")
+	tunnelID = flag.String("tunnel-id", "", "Tunnelbroker tunnel ID")
+)
+
 func main() {
+	flag.Parse()
+
 	conn, err := net.ListenPacket("udp4", ":0")
 	if err != nil {
 		log.Fatalf("error creating UDP listener: %s", err.Error())
@@ -42,7 +51,14 @@ func main() {
 	log.Printf("received control point: %s", controlPoint)
 
 	// Hit the control point
-	log.Printf("Current WAN IP is: %s", retrieveWANIP(controlPoint))
+	wanIP := retrieveWANIP(controlPoint)
+	log.Printf("Current WAN IP is: %s", wanIP)
+
+	// Update the Tunnel config
+	err = tunnelBrokerUpdate(wanIP)
+	if err != nil {
+		log.Printf("%s", err)
+	}
 }
 
 func UPNPListener(conn *net.UDPConn, decodeChan chan []byte) {
