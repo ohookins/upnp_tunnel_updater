@@ -1,6 +1,6 @@
 # UPnP-based tunnelbroker.net endpoint updater
 
-[Hurricane Electric](https://www.tunnelbroker.net/) offers free IPv6 over IPv6
+[Hurricane Electric](https://www.tunnelbroker.net/) offers free IPv6 over IPv4
 tunnels, but requires the endpoint to be aware of your own IPv4 endpoint in
 order for the tunnel to operate (which makes perfect sense - it is an IP-based
 tunnel which has no awareness of connections and needs to know where to forward
