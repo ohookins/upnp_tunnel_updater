@@ -7,14 +7,12 @@ import (
 	"net/http"
 )
 
+const tunnelUpdateFmt = "https://ipv4.tunnelbroker.net/ipv4_end.php?ipv4b=%s&user_id=%s&pass=%s&tunnel_id=%s"
+
 func tunnelBrokerUpdate(address string) error {
-	requestURI := fmt.Sprintf("https://ipv4.tunnelbroker.net/ipv4_end.php?ipv4b=%s&user_id=%s&pass=%s&tunnel_id=%s",
-		address,
-		*userID,
-		*password,
-		*tunnelID,
-	)
+	requestURI := fmt.Sprintf(tunnelUpdateFmt, address, *userID, *password, *tunnelID)
 	log.Printf("Requesting update to tunnel %s config with IP: %s", *tunnelID, address)
+
 	res, err := http.Get(requestURI)
 	if err != nil {
 		return fmt.Errorf("error requesting tunnel update: %s", err)
@@ -31,6 +29,5 @@ func tunnelBrokerUpdate(address string) error {
 	}
 
 	log.Printf("successfully updated tunnel config")
-	log.Printf(string(body))
 	return nil
 }

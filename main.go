@@ -7,16 +7,23 @@ import (
 	"log"
 	"net"
 	"strings"
+	"time"
 )
 
 var (
+	timeout  = flag.Duration("timeout", 10*time.Second, "Discovery timeout duration")
 	userID   = flag.String("user-id", "", "Tunnelbroker User ID")
 	password = flag.String("password", "", "Tunnelbroker password")
 	tunnelID = flag.String("tunnel-id", "", "Tunnelbroker tunnel ID")
+	noopMode = flag.Bool("noop", false, "Do not actually update the Tunnelbroker config")
 )
 
 func main() {
+	// Check all necessary flags
 	flag.Parse()
+	if !*noopMode && (*userID == "" || *password == "" || *tunnelID == "") {
+		log.Fatalf("Require user-id, password and tunnel-id to update Tunnelbroker config")
+	}
 
 	conn, err := net.ListenPacket("udp4", ":0")
 	if err != nil {
@@ -31,18 +38,24 @@ func main() {
 	go UPNPListener(udp, decodeChan)
 
 	ssdp, _ := net.ResolveUDPAddr("udp4", "239.255.255.250:1900")
-	query := ssdpQueryMessage(10)
+	query := ssdpQueryMessage(*timeout)
 	_, err = udp.WriteToUDP(query.Bytes(), ssdp)
 	if err != nil {
 		log.Fatalf("error during UPNP discovery message: %s", err.Error())
 	}
 
-	// TODO: Retry after timeout period if no response received.
-	log.Println("sent SSDP discovery message")
+	log.Printf("sent SSDP discovery message (timeout: %s)", *timeout)
 
-	// Only interested in the first message
-	msg := <-ssdpChan
-	close(ssdpChan)
+	// Only wait for the first message or timeout
+	var msg map[string]string
+	select {
+	case msg = <-ssdpChan:
+		close(ssdpChan)
+	case <-time.After(*timeout):
+		log.Fatalf("timed out after %s waiting for discovery response", *timeout)
+	}
+
+	// Find the control point from the discovery response
 	controlPoint, err := getWANControlPoint(msg)
 	if err != nil {
 		fmt.Println(err)
@@ -76,12 +89,12 @@ func UPNPListener(conn *net.UDPConn, decodeChan chan []byte) {
 
 // Generate a discovery message that restricts the search target to
 // only WANIPConnection:1 services.
-func ssdpQueryMessage(timeout int) *bytes.Buffer {
+func ssdpQueryMessage(timeoutDuration time.Duration) *bytes.Buffer {
 	msg := &bytes.Buffer{}
 	msg.WriteString("M-SEARCH * HTTP/1.1\r\n")
 	msg.WriteString("Host: 239.255.255.250:1900\r\n")
 	msg.WriteString("MAN: \"ssdp:discover\"\r\n")
-	msg.WriteString(fmt.Sprintf("MX: %d\r\n", timeout))
+	msg.WriteString(fmt.Sprintf("MX: %d\r\n", int(timeoutDuration.Seconds())))
 	msg.WriteString("ST: urn:schemas-upnp-org:service:WANIPConnection:1\r\n")
 	msg.WriteString("\r\n")
 	return msg
