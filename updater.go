@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strings"
 )
 
 const tunnelUpdateFmt = "https://ipv4.tunnelbroker.net/ipv4_end.php?ipv4b=%s&user_id=%s&pass=%s&tunnel_id=%s"
@@ -26,6 +27,11 @@ func tunnelBrokerUpdate(address string) error {
 
 	if res.StatusCode != 200 {
 		return fmt.Errorf("tunnel config update failed: %d %s", res.StatusCode, body)
+	}
+
+	// Check for errors in the body
+	if strings.Contains(string(body), "ERROR") {
+		return fmt.Errorf(string(body))
 	}
 
 	log.Printf("successfully updated tunnel config")
