@@ -41,8 +41,10 @@ endpoint and _actual_ DynDNS.
   -tunnel-id=<TUNNEL_ID>
 ```
 
+You can also specify ```-noop``` to find the IP but not update the Tunnelbroker
+configuration.
+
 # TODO
-* Flag presence checks.
 * Local cache file to prevent spurious update attempts of remote config.
 * Subscribing to the event endpoint and remaining resident for continuous
 updates.

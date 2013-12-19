@@ -68,6 +68,9 @@ func main() {
 	log.Printf("Current WAN IP is: %s", wanIP)
 
 	// Update the Tunnel config
+	if *noopMode {
+		return
+	}
 	err = tunnelBrokerUpdate(wanIP)
 	if err != nil {
 		log.Printf("%s", err)
