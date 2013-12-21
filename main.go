@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
 	"strings"
@@ -11,11 +12,12 @@ import (
 )
 
 var (
-	timeout  = flag.Duration("timeout", 10*time.Second, "Discovery timeout duration")
-	userID   = flag.String("user-id", "", "Tunnelbroker User ID")
-	password = flag.String("password", "", "Tunnelbroker password")
-	tunnelID = flag.String("tunnel-id", "", "Tunnelbroker tunnel ID")
-	noopMode = flag.Bool("noop", false, "Do not actually update the Tunnelbroker config")
+	timeout   = flag.Duration("timeout", 10*time.Second, "Discovery timeout duration")
+	userID    = flag.String("user-id", "", "Tunnelbroker User ID")
+	password  = flag.String("password", "", "Tunnelbroker password")
+	tunnelID  = flag.String("tunnel-id", "", "Tunnelbroker tunnel ID")
+	noopMode  = flag.Bool("noop", false, "Do not actually update the Tunnelbroker config")
+	cacheFile = flag.String("cache-file", ".upnp_tunnel_updater.cache", "Cache file that stores the previously updated IP.")
 )
 
 func main() {
@@ -67,6 +69,12 @@ func main() {
 	wanIP := retrieveWANIP(controlPoint)
 	log.Printf("Current WAN IP is: %s", wanIP)
 
+	// Check the cache
+	if !hasCurrentIPChanged(wanIP, *cacheFile) {
+		log.Printf("WAN IP has not changed since last run, exiting.")
+		return
+	}
+
 	// Update the Tunnel config
 	if *noopMode {
 		return
@@ -75,6 +83,10 @@ func main() {
 	if err != nil {
 		log.Printf("%s", err)
 	}
+
+	// Save the new IP address since we successfully updated the tunnel config
+	log.Printf("Saving new WAN IP to cache file %s", *cacheFile)
+	saveNewWANIP(wanIP, *cacheFile)
 }
 
 func UPNPListener(conn *net.UDPConn, decodeChan chan []byte) {
@@ -133,4 +145,17 @@ func msgDecoder(decodeChan chan []byte, ssdpChan chan map[string]string) {
 
 		ssdpChan <- ssdpResponse
 	}
+}
+
+func hasCurrentIPChanged(wanIP, filename string) bool {
+	contents, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return true
+	}
+
+	return !(string(contents) == wanIP)
+}
+
+func saveNewWANIP(wanIP, filename string) {
+	_ = ioutil.WriteFile(filename, []byte(wanIP), 0600)
 }

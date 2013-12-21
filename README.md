@@ -44,8 +44,11 @@ endpoint and _actual_ DynDNS.
 You can also specify ```-noop``` to find the IP but not update the Tunnelbroker
 configuration.
 
+A local cache file will be saved (named by default ```.upnp_tunnel_updater.cache```)
+in the current directory, with the current IP address. This will be checked on
+each run to avoid making unnecessary updates to the Tunnelbroker config.
+
 # TODO
-* Local cache file to prevent spurious update attempts of remote config.
 * Subscribing to the event endpoint and remaining resident for continuous
 updates.
 * Code cleanup.
