@@ -36,7 +36,8 @@ func main() {
 
 	decodeChan := make(chan []byte)
 	ssdpChan := make(chan map[string]string)
-	go msgDecoder(decodeChan, ssdpChan)
+	quitChan := make(chan struct{})
+	go msgDecoder(decodeChan, ssdpChan, quitChan)
 	go UPNPListener(udp, decodeChan)
 
 	ssdp, _ := net.ResolveUDPAddr("udp4", "239.255.255.250:1900")
@@ -52,7 +53,7 @@ func main() {
 	var msg map[string]string
 	select {
 	case msg = <-ssdpChan:
-		close(ssdpChan)
+		quitChan <- struct{}{}
 	case <-time.After(*timeout):
 		log.Fatalf("timed out after %s waiting for discovery response", *timeout)
 	}
@@ -67,6 +68,9 @@ func main() {
 
 	// Hit the control point
 	wanIP := retrieveWANIP(controlPoint)
+	if wanIP == "" {
+		return
+	}
 	log.Printf("Current WAN IP is: %s", wanIP)
 
 	// Check the cache
@@ -115,7 +119,7 @@ func ssdpQueryMessage(timeoutDuration time.Duration) *bytes.Buffer {
 	return msg
 }
 
-func msgDecoder(decodeChan chan []byte, ssdpChan chan map[string]string) {
+func msgDecoder(decodeChan chan []byte, ssdpChan chan map[string]string, quitChan chan struct{}) {
 	for packet := range decodeChan {
 		ssdpResponse := make(map[string]string)
 		// Response lines are separated by CR+LF as in requests
@@ -129,7 +133,7 @@ func msgDecoder(decodeChan chan []byte, ssdpChan chan map[string]string) {
 
 			// Capture status separately
 			if len(lines[i]) > 4 && lines[i][:4] == "HTTP" {
-				ssdpResponse["Status"] = lines[i]
+				ssdpResponse["status"] = lines[i]
 			} else {
 				// Split header:value from line
 				fields := strings.SplitN(lines[i], ":", 2)
@@ -139,11 +143,15 @@ func msgDecoder(decodeChan chan []byte, ssdpChan chan map[string]string) {
 					continue
 				}
 
-				ssdpResponse[fields[0]] = strings.TrimSpace(fields[1])
+				ssdpResponse[strings.ToLower(fields[0])] = strings.TrimSpace(fields[1])
 			}
 		}
 
-		ssdpChan <- ssdpResponse
+		select {
+		case ssdpChan <- ssdpResponse:
+		case _ = <-quitChan:
+			return
+		}
 	}
 }
 

@@ -43,15 +43,19 @@ func retrieveWANIP(controlPoint string) string {
 	}
 
 	// Required control message headers for SOAP request
-	req.Header.Add("CONTENT-LENGTH", string(msg.Len()))
-	req.Header.Add("SOAPACTION", "urn:schemas-upnp-org:service:WANIPConnection:1#GetExternalIPAddress")
+	req.Header.Add("Content-Length", string(msg.Len()))
+	req.Header.Add("Soapaction", "urn:schemas-upnp-org:service:WANIPConnection:1#GetExternalIPAddress")
+	req.Header.Add("Content-Type", "text/xml; charset=\"utf-8\"")
 
 	log.Printf("sending control request to %s", controlPoint)
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		log.Printf("error posting control message: %s", err)
 	}
-	log.Printf("received GetExternalIPAddress response")
+	log.Printf("received GetExternalIPAddress response with status code %d", res.StatusCode)
+	if res.StatusCode != 200 {
+		return ""
+	}
 
 	defer res.Body.Close()
 	body, err := ioutil.ReadAll(res.Body)

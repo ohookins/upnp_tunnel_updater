@@ -47,18 +47,18 @@ type serviceDescription struct {
 }
 
 func getWANControlPoint(msg map[string]string) (string, error) {
-	if _, present := msg["Location"]; !present {
-		return "", fmt.Errorf("message had no Location header")
+	if _, present := msg["location"]; !present {
+		return "", fmt.Errorf("message had no 'location' header")
 	}
 
 	// Get base query endpoint from the Location header
-	locationURL, err := url.Parse(msg["Location"])
+	locationURL, err := url.Parse(msg["location"])
 	if err != nil {
-		return "", fmt.Errorf("Location header appears to be invalid: %s", err)
+		return "", fmt.Errorf("location header appears to be invalid: %s", err)
 	}
 	queryEndpoint := fmt.Sprintf("%s://%s", locationURL.Scheme, locationURL.Host)
 
-	res, err := http.Get(msg["Location"])
+	res, err := http.Get(msg["location"])
 	if err != nil {
 		return "", fmt.Errorf("error retrieving service description: %s", err)
 	}
