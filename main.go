@@ -36,7 +36,7 @@ func main() {
 
 	decodeChan := make(chan []byte)
 	ssdpChan := make(chan map[string]string)
-	quitChan := make(chan struct{})
+	quitChan := make(chan struct{}, 1)
 	go msgDecoder(decodeChan, ssdpChan, quitChan)
 	go UPNPListener(udp, decodeChan)
 
@@ -96,7 +96,8 @@ func main() {
 func UPNPListener(conn *net.UDPConn, decodeChan chan []byte) {
 	for {
 		buf := make([]byte, 512)
-		_, err := conn.Read(buf)
+		n, err := conn.Read(buf)
+		log.Printf("Read %d bytes from UDP listener\n", n)
 		if err != nil {
 			log.Printf("error receiving UDP packet: %s", err.Error())
 			break
@@ -149,6 +150,7 @@ func msgDecoder(decodeChan chan []byte, ssdpChan chan map[string]string, quitCha
 
 		select {
 		case ssdpChan <- ssdpResponse:
+			return
 		case _ = <-quitChan:
 			return
 		}
