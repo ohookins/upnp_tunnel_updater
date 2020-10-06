@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-const tunnelUpdateFmt = "https://ipv4.tunnelbroker.net/ipv4_end.php?ipv4b=%s&user_id=%s&pass=%s&tunnel_id=%s"
+const tunnelUpdateFmt = "https://ipv4.tunnelbroker.net/nic/update?myip=%s&username=%s&password=%s&hostname=%s"
 
 func tunnelBrokerUpdate(address string) error {
 	requestURI := fmt.Sprintf(tunnelUpdateFmt, address, *userID, *password, *tunnelID)
